@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Life Timeline</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000000;
+            color: #ffffff;
+            min-height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .container {
+            width: 100%;
+            height: 100vh;
+            background: #000000;
+            position: relative;
+        }
+
+        .infinity-background {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 500px;
+            color: #00ff41;
+            opacity: 0.03;
+            font-weight: bold;
+            z-index: 0;
+            pointer-events: none;
+            user-select: none;
+            filter: blur(2px);
+            animation: pulse-infinity 8s ease-in-out infinite;
+            text-shadow: 0 0 30px #00ff41, 0 0 60px #00ff41;
+        }
+
+        @keyframes pulse-infinity {
+            0%, 100% { 
+                opacity: 0.03;
+                transform: translate(-50%, -50%) scale(1);
+                filter: blur(2px);
+            }
+            50% { 
+                opacity: 0.06;
+                transform: translate(-50%, -50%) scale(1.05);
+                filter: blur(1px);
+            }
+        }
+
+        .timeline-viewport {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            overflow: hidden;
+            cursor: grab;
+            z-index: 1;
+        }
+
+        .timeline-viewport.dragging {
+            cursor: grabbing;
+        }
+
+        .timeline-container {
+            position: absolute;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            transition: none;
+            will-change: transform;
+        }
+
+        .timeline-track {
+            position: absolute;
+            top: 50%;
+            height: 2px;
+            background: #333;
+            transform: translateY(-50%);
+            z-index: 1;
+        }
+
+        .year-marker {
+            position: absolute;
+            top: 55%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 2;
+        }
+
+        .year-marker-line {
+            width: 1px;
+            height: 30px;
+            background: #444;
+            margin-bottom: 10px;
+        }
+
+        .year-marker-label {
+            color: #666;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .month-marker {
+            position: absolute;
+            top: 52%;
+            width: 1px;
+            height: 10px;
+            background: #222;
+            z-index: 1;
+        }
+
+        .event-marker {
+            position: absolute;
+            transform: translateX(-50%);
+            cursor: pointer;
+            z-index: 5;
+            transition: all 0.3s;
+        }
+
+        .event-marker:hover {
+            z-index: 10;
+        }
+
+        .event-dot {
+            width: 12px;
+            height: 12px;
+            background: #ff0000;
+            border: 2px solid #ff0000;
+            border-radius: 50%;
+            margin: 0 auto;
+            transition: all 0.3s;
+            position: relative;
+            top: -5px;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+        }
+
+        .event-marker:hover .event-dot {
+            transform: scale(1.8);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+        }
+
+        .event-card {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) scale(0.95);
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid #333;
+            padding: 15px;
+            border-radius: 8px;
+            min-width: 250px;
+            max-width: 320px;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s;
+            border-top: 2px solid #ff0000;
+        }
+
+        .event-marker:nth-child(even) .event-card {
+            bottom: auto;
+            top: 30px;
+        }
+
+        .event-marker:hover .event-card {
+            opacity: 1;
+            pointer-events: all;
+            transform: translateX(-50%) scale(1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+        }
+
+        .event-date {
+            color: #888;
+            font-size: 11px;
+            margin-bottom: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .event-title {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .event-description {
+            color: #aaa;
+            line-height: 1.4;
+            font-size: 0.9em;
+        }
+
+        .event-age {
+            color: #666;
+            font-size: 0.85em;
+            margin-bottom: 8px;
+            font-style: italic;
+        }
+
+        .event-image {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-top: 10px;
+            opacity: 0.9;
+        }
+
+        .current-time-marker {
+            position: absolute;
+            top: 35%;
+            height: 30%;
+            width: 2px;
+            background: #ff0000;
+            z-index: 4;
+            opacity: 0.6;
+        }
+
+        .zoom-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(26, 26, 26, 0.8);
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 1px solid #333;
+            font-size: 11px;
+            color: #666;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .zoom-indicator.visible {
+            opacity: 1;
+        }
+
+        .add-button {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #ff0000;
+            border: none;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(255, 0, 0, 0.4);
+            transition: all 0.3s;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .add-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 30px rgba(255, 0, 0, 0.6);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #0a0a0a;
+            border: 1px solid #ff0000;
+            padding: 30px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 450px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #ff0000;
+            font-size: 1.6em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #999;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            background: #000;
+            border: 1px solid #333;
+            color: #fff;
+            border-radius: 5px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #ff0000;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            text-transform: uppercase;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-save {
+            background: #ff0000;
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #cc0000;
+        }
+
+        .btn-cancel {
+            background: #1a1a1a;
+            color: #999;
+            border: 1px solid #333;
+        }
+
+        .btn-cancel:hover {
+            background: #2a2a2a;
+        }
+
+        .image-preview {
+            margin-top: 10px;
+            max-width: 100%;
+            border-radius: 5px;
+            border: 1px solid #333;
+        }
+
+        @media (max-width: 768px) {
+            .event-card {
+                min-width: 200px;
+            }
+            
+            .add-button {
+                width: 50px;
+                height: 50px;
+                font-size: 24px;
+            }
+
+            .infinity-background {
+                font-size: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="infinity-background">∞</div>
+        <div class="timeline-viewport" id="timelineViewport">
+            <div class="timeline-container" id="timelineContainer">
+                <div class="timeline-track" id="timelineTrack"></div>
+                <!-- Events and markers will be added here -->
+            </div>
+        </div>
+        <div class="zoom-indicator" id="zoomIndicator">Zoom: <span id="zoomLevel">100</span>%</div>
+        <button class="add-button" onclick="openAddModal()">+</button>
+    </div>
+
+    <!-- Add/Edit Event Modal -->
+    <div class="modal" id="eventModal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Add Event</h2>
+            <form id="eventForm">
+                <div class="form-group">
+                    <label for="eventDate">Date *</label>
+                    <input type="date" id="eventDate" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="eventTitle">Title *</label>
+                    <input type="text" id="eventTitle" placeholder="What happened?" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="eventDescription">Description</label>
+                    <textarea id="eventDescription" placeholder="Details about this moment..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="eventImage">Image (Optional)</label>
+                    <input type="file" id="eventImage" accept="image/*" onchange="previewImage(event)">
+                    <img id="imagePreview" class="image-preview" style="display: none;">
+                </div>
+                
+                <div class="modal-buttons">
+                    <button type="button" class="btn-save" onclick="saveEvent()">SAVE</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal()">CANCEL</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let events = [];
+        let currentEditId = null;
+        let currentViewPosition = 0;
+        let timelineStartDate = null;
+        let timelineEndDate = null;
+        let pixelsPerDay = 0.5;
+        let zoomFactor = 1;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartPosition = 0;
+
+        // Demo data
+        const demoEvents = [
+            {
+                id: 1,
+                date: "1995-08-15",
+                title: "Born in San Francisco",
+                description: "The beginning of my journey",
+                image: null
+            },
+            {
+                id: 2,
+                date: "2001-09-03",
+                title: "First Day of School",
+                description: "Started at Lincoln Elementary",
+                image: null
+            },
+            {
+                id: 3,
+                date: "2003-07-20",
+                title: "Family Disney Trip",
+                description: "First airplane ride, magical week",
+                image: null
+            },
+            {
+                id: 4,
+                date: "2007-06-14",
+                title: "Won Science Fair",
+                description: "My volcano project took first place",
+                image: null
+            },
+            {
+                id: 5,
+                date: "2009-04-10",
+                title: "Got Buddy the Dog",
+                description: "Best friend for life",
+                image: null
+            },
+            {
+                id: 6,
+                date: "2013-06-20",
+                title: "High School Graduation",
+                description: "Valedictorian, onto new adventures",
+                image: null
+            },
+            {
+                id: 7,
+                date: "2013-09-02",
+                title: "Started UC Berkeley",
+                description: "Computer Science major begins",
+                image: null
+            },
+            {
+                id: 8,
+                date: "2015-06-15",
+                title: "First Internship",
+                description: "Summer at InnovateTech",
+                image: null
+            },
+            {
+                id: 9,
+                date: "2016-03-25",
+                title: "Backpacked Europe",
+                description: "3 weeks, 7 countries",
+                image: null
+            },
+            {
+                id: 10,
+                date: "2017-05-18",
+                title: "College Graduation",
+                description: "BS in Computer Science",
+                image: null
+            },
+            {
+                id: 11,
+                date: "2017-07-10",
+                title: "Joined Google",
+                description: "Dream job achieved",
+                image: null
+            },
+            {
+                id: 12,
+                date: "2018-11-23",
+                title: "Met Sarah",
+                description: "Coffee shop encounter",
+                image: null
+            },
+            {
+                id: 13,
+                date: "2019-12-31",
+                title: "Times Square NYE",
+                description: "Bucket list checked",
+                image: null
+            },
+            {
+                id: 14,
+                date: "2020-03-15",
+                title: "Went Remote",
+                description: "Pandemic work from home",
+                image: null
+            },
+            {
+                id: 15,
+                date: "2021-06-20",
+                title: "Senior Engineer",
+                description: "Big promotion",
+                image: null
+            },
+            {
+                id: 16,
+                date: "2022-04-15",
+                title: "Engaged",
+                description: "She said yes!",
+                image: null
+            },
+            {
+                id: 17,
+                date: "2022-10-08",
+                title: "Wedding Day",
+                description: "Perfect day in Napa",
+                image: null
+            },
+            {
+                id: 18,
+                date: "2023-07-22",
+                title: "Bought House",
+                description: "First home in Oakland",
+                image: null
+            },
+            {
+                id: 19,
+                date: "2024-02-14",
+                title: "Started Company",
+                description: "TimelineApps Inc founded",
+                image: null
+            },
+            {
+                id: 20,
+                date: "2024-11-15",
+                title: "Product Launch",
+                description: "First app goes live",
+                image: null
+            }
+        ];
+
+        window.onload = function() {
+            loadEvents();
+            renderTimeline();
+            setupDragAndZoom();
+        };
+
+        function loadEvents() {
+            const savedEvents = localStorage.getItem('timelineEvents');
+            if (savedEvents) {
+                events = JSON.parse(savedEvents);
+            } else {
+                events = demoEvents;
+                saveToLocalStorage();
+            }
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('timelineEvents', JSON.stringify(events));
+        }
+
+        function calculateAge(birthDate, toDate = new Date()) {
+            const birth = new Date(birthDate);
+            let age = toDate.getFullYear() - birth.getFullYear();
+            const monthDiff = toDate.getMonth() - birth.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && toDate.getDate() < birth.getDate())) {
+                age--;
+            }
+            return age;
+        }
+
+        function calculateAgeAtEvent(birthDate, eventDate) {
+            const age = calculateAge(birthDate, new Date(eventDate));
+            const birth = new Date(birthDate);
+            const event = new Date(eventDate);
+            const months = (event.getMonth() - birth.getMonth() + 12) % 12;
+            
+            if (age === 0) {
+                return months === 0 ? "Newborn" : `${months} month${months > 1 ? 's' : ''} old`;
+            }
+            return `Age ${age}`;
+        }
+
+        function renderTimeline() {
+            const container = document.getElementById('timelineContainer');
+            const track = document.getElementById('timelineTrack');
+            
+            container.innerHTML = '';
+            container.appendChild(track);
+            
+            if (events.length === 0) {
+                return;
+            }
+            
+            // Sort events by date
+            events.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            // Find birth date and calculate timeline range
+            const birthDate = events[0].date;
+            timelineStartDate = new Date(birthDate);
+            timelineStartDate.setMonth(0, 1);
+            
+            const today = new Date();
+            const latestEvent = new Date(events[events.length - 1].date);
+            timelineEndDate = new Date(Math.max(today, latestEvent));
+            timelineEndDate.setFullYear(timelineEndDate.getFullYear() + 1);
+            
+            // Calculate timeline width with zoom
+            const totalDays = (timelineEndDate - timelineStartDate) / (1000 * 60 * 60 * 24);
+            const baseWidth = totalDays * pixelsPerDay;
+            const timelineWidth = baseWidth * zoomFactor;
+            
+            container.style.width = timelineWidth + 'px';
+            track.style.width = timelineWidth + 'px';
+            
+            // Add year markers
+            for (let year = timelineStartDate.getFullYear(); year <= timelineEndDate.getFullYear(); year++) {
+                const yearDate = new Date(year, 0, 1);
+                const daysFromStart = (yearDate - timelineStartDate) / (1000 * 60 * 60 * 24);
+                const position = daysFromStart * pixelsPerDay * zoomFactor;
+                
+                const yearMarker = document.createElement('div');
+                yearMarker.className = 'year-marker';
+                yearMarker.style.left = position + 'px';
+                yearMarker.innerHTML = `
+                    <div class="year-marker-line"></div>
+                    <div class="year-marker-label">${year}</div>
+                `;
+                container.appendChild(yearMarker);
+                
+                // Add month markers
+                for (let month = 1; month < 12; month++) {
+                    const monthDate = new Date(year, month, 1);
+                    const monthDays = (monthDate - timelineStartDate) / (1000 * 60 * 60 * 24);
+                    const monthPosition = monthDays * pixelsPerDay * zoomFactor;
+                    
+                    const monthMarker = document.createElement('div');
+                    monthMarker.className = 'month-marker';
+                    monthMarker.style.left = monthPosition + 'px';
+                    container.appendChild(monthMarker);
+                }
+            }
+            
+            // Add current time marker
+            if (today >= timelineStartDate && today <= timelineEndDate) {
+                const todayDays = (today - timelineStartDate) / (1000 * 60 * 60 * 24);
+                const todayPosition = todayDays * pixelsPerDay * zoomFactor;
+                
+                const currentMarker = document.createElement('div');
+                currentMarker.className = 'current-time-marker';
+                currentMarker.style.left = todayPosition + 'px';
+                container.appendChild(currentMarker);
+            }
+            
+            // Add events
+            events.forEach((event, index) => {
+                const eventDate = new Date(event.date);
+                const daysFromStart = (eventDate - timelineStartDate) / (1000 * 60 * 60 * 24);
+                const position = daysFromStart * pixelsPerDay * zoomFactor;
+                
+                const formattedDate = eventDate.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                
+                const ageAtEvent = calculateAgeAtEvent(birthDate, event.date);
+                
+                const eventMarker = document.createElement('div');
+                eventMarker.className = 'event-marker';
+                eventMarker.style.left = position + 'px';
+                
+                eventMarker.innerHTML = `
+                    <div class="event-dot"></div>
+                    <div class="event-card">
+                        <div class="event-date">${formattedDate}</div>
+                        <div class="event-age">${ageAtEvent}</div>
+                        <div class="event-title">${event.title}</div>
+                        ${event.description ? `<div class="event-description">${event.description}</div>` : ''}
+                        ${event.image ? `<img src="${event.image}" class="event-image" alt="${event.title}">` : ''}
+                    </div>
+                `;
+                
+                // Add double-click to edit
+                eventMarker.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    openEditModal(event.id);
+                });
+                
+                container.appendChild(eventMarker);
+            });
+            
+            // Center on today initially
+            centerOnToday();
+        }
+
+        function centerOnToday() {
+            if (events.length === 0) return;
+            
+            const today = new Date();
+            const daysFromStart = (today - timelineStartDate) / (1000 * 60 * 60 * 24);
+            const position = daysFromStart * pixelsPerDay * zoomFactor;
+            
+            const viewport = document.getElementById('timelineViewport');
+            currentViewPosition = position - (viewport.offsetWidth / 2);
+            updateViewPosition();
+        }
+
+        function updateViewPosition() {
+            const container = document.getElementById('timelineContainer');
+            const viewport = document.getElementById('timelineViewport');
+            
+            // Keep within bounds
+            const maxScroll = Math.max(0, container.offsetWidth - viewport.offsetWidth);
+            currentViewPosition = Math.max(0, Math.min(currentViewPosition, maxScroll));
+            
+            container.style.transform = `translateX(${-currentViewPosition}px)`;
+        }
+
+        function setupDragAndZoom() {
+            const viewport = document.getElementById('timelineViewport');
+            const zoomIndicator = document.getElementById('zoomIndicator');
+            const zoomLevel = document.getElementById('zoomLevel');
+            
+            // Mouse drag
+            viewport.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                dragStartX = e.clientX;
+                dragStartPosition = currentViewPosition;
+                viewport.classList.add('dragging');
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const deltaX = dragStartX - e.clientX;
+                currentViewPosition = dragStartPosition + deltaX;
+                updateViewPosition();
+            });
+            
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                viewport.classList.remove('dragging');
+            });
+            
+            // Touch drag for mobile
+            let touchStartX = 0;
+            let touchStartPosition = 0;
+            
+            viewport.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                touchStartPosition = currentViewPosition;
+            });
+            
+            viewport.addEventListener('touchmove', (e) => {
+                const deltaX = touchStartX - e.touches[0].clientX;
+                currentViewPosition = touchStartPosition + deltaX;
+                updateViewPosition();
+                e.preventDefault();
+            });
+            
+            // Mouse wheel zoom
+            viewport.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                
+                // Get mouse position relative to viewport
+                const rect = viewport.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const percentX = (currentViewPosition + mouseX) / (document.getElementById('timelineContainer').offsetWidth / zoomFactor);
+                
+                // Adjust zoom
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                const newZoom = Math.max(0.5, Math.min(5, zoomFactor * delta));
+                
+                if (newZoom !== zoomFactor) {
+                    zoomFactor = newZoom;
+                    
+                    // Re-render with new zoom
+                    renderTimeline();
+                    
+                    // Maintain position under mouse
+                    const newWidth = document.getElementById('timelineContainer').offsetWidth;
+                    currentViewPosition = (percentX * newWidth) - mouseX;
+                    updateViewPosition();
+                    
+                    // Show zoom indicator
+                    zoomLevel.textContent = Math.round(zoomFactor * 100);
+                    zoomIndicator.classList.add('visible');
+                    
+                    clearTimeout(window.zoomTimeout);
+                    window.zoomTimeout = setTimeout(() => {
+                        zoomIndicator.classList.remove('visible');
+                    }, 1500);
+                }
+            });
+            
+            // Pinch zoom for mobile
+            let initialPinchDistance = null;
+            let initialZoom = zoomFactor;
+            
+            viewport.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    initialPinchDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    initialZoom = zoomFactor;
+                }
+            });
+            
+            viewport.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 2 && initialPinchDistance) {
+                    const currentDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    
+                    const scale = currentDistance / initialPinchDistance;
+                    zoomFactor = Math.max(0.5, Math.min(5, initialZoom * scale));
+                    
+                    renderTimeline();
+                    
+                    zoomLevel.textContent = Math.round(zoomFactor * 100);
+                    zoomIndicator.classList.add('visible');
+                    
+                    clearTimeout(window.zoomTimeout);
+                    window.zoomTimeout = setTimeout(() => {
+                        zoomIndicator.classList.remove('visible');
+                    }, 1500);
+                }
+            });
+            
+            viewport.addEventListener('touchend', () => {
+                initialPinchDistance = null;
+            });
+        }
+
+        function openAddModal() {
+            currentEditId = null;
+            document.getElementById('modalTitle').textContent = 'ADD EVENT';
+            document.getElementById('eventForm').reset();
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('eventModal').classList.add('active');
+        }
+
+        function openEditModal(eventId) {
+            currentEditId = eventId;
+            const event = events.find(e => e.id === eventId);
+            
+            document.getElementById('modalTitle').textContent = 'EDIT EVENT';
+            document.getElementById('eventDate').value = event.date;
+            document.getElementById('eventTitle').value = event.title;
+            document.getElementById('eventDescription').value = event.description || '';
+            
+            if (event.image) {
+                document.getElementById('imagePreview').src = event.image;
+                document.getElementById('imagePreview').style.display = 'block';
+            }
+            
+            document.getElementById('eventModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('eventModal').classList.remove('active');
+            document.getElementById('eventForm').reset();
+            document.getElementById('imagePreview').style.display = 'none';
+        }
+
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').src = e.target.result;
+                    document.getElementById('imagePreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function saveEvent() {
+            const date = document.getElementById('eventDate').value;
+            const title = document.getElementById('eventTitle').value;
+            const description = document.getElementById('eventDescription').value;
+            const imagePreview = document.getElementById('imagePreview');
+            
+            if (!date || !title) {
+                alert('Please fill in Date and Title');
+                return;
+            }
+            
+            const eventData = {
+                id: currentEditId || Date.now(),
+                date: date,
+                title: title,
+                description: description,
+                image: imagePreview.style.display !== 'none' ? imagePreview.src : null
+            };
+            
+            if (currentEditId) {
+                const index = events.findIndex(e => e.id === currentEditId);
+                events[index] = eventData;
+            } else {
+                events.push(eventData);
+            }
+            
+            saveToLocalStorage();
+            renderTimeline();
+            closeModal();
+        }
+
+        function deleteEvent(eventId) {
+            if (confirm('Delete this event?')) {
+                events = events.filter(e => e.id !== eventId);
+                saveToLocalStorage();
+                renderTimeline();
+            }
+        }
+
+        // Close modal on outside click
+        window.onclick = function(event) {
+            const modal = document.getElementById('eventModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>
